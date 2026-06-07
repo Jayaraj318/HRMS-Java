@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HRMS - Departments</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <script>
+        (async function(){
+            try { const r = await fetch('/api/me'); if (r.ok) { const me = await r.json(); if (!me || me.role !== 'ADMIN') { window.location = '/static/dashboard.html'; } } else { window.location = '/static/index.html'; } } catch(e){ window.location = '/static/index.html'; }
+        })();
+    </script>
+    <div class="app">
+        <aside class="sidebar">
+            <h2>HRMS</h2>
+            <nav>
+                <a href="/static/dashboard.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z" fill="currentColor"/></svg><span>Dashboard</span></a>
+                <a href="/static/employees.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm-7 9a7 7 0 0 1 14 0H5z" fill="currentColor"/></svg><span>Employees</span></a>
+                <a href="/static/departments.html" class="active"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13h8V3H3v10zm10 8h8v-6h-8v6zM13 3v6h8V3h-8z" fill="currentColor"/></svg><span>Departments</span></a>
+                <a href="/static/attendance.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7V12l4 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Attendance</span></a>
+                <a href="/static/leaves.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Leaves</span></a>
+                <a href="#" id="logout"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Logout</span></a>
+            </nav>
+        </aside>
+        <main class="main">
+            <header>
+                <h1>Departments</h1>
+                <div class="toolbar">
+                    <button id="addDeptBtn">Add Department</button>
+                </div>
+            </header>
+            <table class="data-table" id="deptTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Department</th>
+                        <th>Manager</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </main>
+    </div>
+
+    <div id="deptModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="deptModalTitle">Add Department</h3>
+            <form id="deptForm">
+                <input name="id" type="hidden">
+                <label>Department Name</label><input name="departmentName" required>
+                <label>Manager Name</label><input name="managerName">
+                <div class="modal-actions">
+                    <button type="submit">Save</button>
+                    <button type="button" id="deptCancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

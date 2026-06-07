@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HRMS - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* Minimal layout helpers that augment existing style.css */
+        :root {
+            --card-gap: 16px;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            min-height: 100vh;
+        }
+
+        aside {
+            background: #0b63b8;
+            color: #fff;
+            padding: 18px 12px;
+        }
+
+        aside h2 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+        }
+
+        aside nav a {
+            display: block;
+            color: #fff;
+            padding: 8px 10px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 4px 0;
+        }
+
+        aside nav a:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        main {
+            padding: 18px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--card-gap);
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .card h3 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .card .value {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .recent-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .profile-card {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0b63b8, #054a91);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        canvas {
+            max-width: 280px;
+            width: 100%;
+            height: 200px;
+        }
+
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: #e6eefc;
+            color: #0b63b8;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        @media (max-width:880px) {
+            .app {
+                grid-template-columns: 1fr
+            }
+
+            .layout {
+                grid-template-columns: 1fr
+            }
+
+            aside {
+                display: flex;
+                gap: 8px;
+                overflow: auto
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <aside>
+            <h2>HRMS</h2>
+            <nav>
+                <a href="/static/dashboard.html">Dashboard</a>
+                <a href="/static/employees.html" class="admin-only">Employees</a>
+                <a href="/static/departments.html" class="admin-only">Departments</a>
+                <a href="/static/attendance.html">Attendance</a>
+                <a href="/static/leaves.html">Leaves</a>
+                <a href="#" id="logout">Logout</a>
+            </nav>
+        </aside>
+
+        <main>
+            <div class="topbar">
+                <div>
+                    <h1 style="margin:0;font-size:20px">HRMS Dashboard</h1>
+                    <div style="color:var(--muted);font-size:13px">Overview &amp; analytics</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div id="profileNameSmall">-</div>
+                    <div id="profileRoleBadge" class="role-badge">-</div>
+                </div>
+            </div>
+
+            <div class="cards">
+                <div class="card">
+                    <h3>Total Employees</h3>
+                    <div id="total" class="value">0</div>
+                </div>
+                <div class="card">
+                    <h3>Departments</h3>
+                    <div id="departments" class="value">0</div>
+                </div>
+                <div class="card">
+                    <h3>Present Today</h3>
+                    <div id="present" class="value">0</div>
+                </div>
+                <div class="card">
+                    <h3>Pending Leaves</h3>
+                    <div id="pendingLeaves" class="value">0</div>
+                </div>
+            </div>
+
+            <div class="layout two-col">
+                <div class="left-col">
+                    <div class="card card-compact" id="attendanceCard">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap">
+                            <div style="flex:1;min-width:260px">
+                                <h3 style="margin:0 0 8px">Attendance</h3>
+                                <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Today's attendance overview</div>
+                                <div class="chart-box" aria-hidden="false">
+                                    <canvas id="presentChart" aria-label="Attendance chart" role="img"></canvas>
+                                </div>
+                            </div>
+                            <div style="width:320px;min-width:240px">
+                                <h3 style="margin:0 0 8px">Recent Leave Requests</h3>
+                                <div id="recentLeaves" class="recent-list">
+                                    <!-- filled by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-compact" id="recentEmployeesCard">
+                        <h3 style="margin:0 0 8px">Recent Employees</h3>
+                        <div id="recentEmployees" class="recent-list">
+                            <!-- filled by JS for ADMIN -->
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="right-col">
+                    <div class="card profile-card-pro">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <h3 style="margin:0">Profile</h3>
+                            <div id="profileRoleSmall" class="role-badge">-</div>
+                        </div>
+                        <div style="height:12px"></div>
+                        <div class="profile-card" style="align-items:flex-start">
+                            <div class="avatar" id="profileAvatar">U</div>
+                            <div>
+                                <div id="profileName" style="font-weight:700">-</div>
+                                <div id="profileRole" style="color:var(--muted);font-size:13px">-</div>
+                                <div id="profileEmpId" style="color:var(--muted);font-size:13px">-</div>
+                            </div>
+                        </div>
+                        <div style="height:12px"></div>
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                            <div style="font-size:13px;color:var(--muted)">Quick Actions</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                <button class="btn">View Profile</button>
+                                <button class="btn" onclick="location.href='/static/leaves.html'">My Leaves</button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // Utilities
+            const getById = id => document.getElementById(id);
+            const safeText = (id, v) => { const el = getById(id); if (el) el.textContent = (v !== undefined && v !== null) ? v : ''; };
+            const appendIf = (parent, el) => { if (parent) parent.appendChild(el); };
+
+            // Single Chart instance
+            let chartInstance = null;
+            async function loadChartLib() {
+                if (window.Chart) return;
+                return new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('Failed to load Chart.js'));
+                    document.head.appendChild(s);
+                });
+            }
+
+            async function createOrUpdateChart(present, absent) {
+                const canvas = getById('presentChart');
+                if (!canvas) return;
+                const ctx = canvas.getContext && canvas.getContext('2d');
+                if (!ctx) return;
+                const data = [Number(present) || 0, Number(absent) || 0];
+                try {
+                    if (!chartInstance) {
+                        await loadChartLib();
+                        if (!window.Chart) return;
+                        chartInstance = new Chart(ctx, {
+                            type: 'pie',
+                            data: { labels: ['Present', 'Absent'], datasets: [{ data: data, backgroundColor: ['#0b63b8', '#ef4444'] }] },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                        });
+                    } else {
+                        chartInstance.data.datasets[0].data = data;
+                        chartInstance.update();
+                    }
+                } catch (err) { console.error('chart error', err); }
+            }
+
+            // RBAC-safe loader
+            async function loadDashboardData() {
+                try {
+                    // Fetch current user first
+                    let me = null;
+                    try {
+                        const r = await fetch('/api/me');
+                        if (r.ok) me = await r.json();
+                    } catch (e) { /* ignore */ }
+
+                    // Apply UI restrictions
+                    if (!me || me.role !== 'ADMIN') {
+                        document.querySelectorAll('.admin-only').forEach(a => a.remove());
+                    }
+                    safeText('profileNameSmall', me?.username || '-');
+                    safeText('profileRoleBadge', me?.role || '-');
+
+                    // Stats and leaves
+                    const statsP = fetch('/api/dashboard/stats').catch(() => ({ ok: false }));
+                    // For ADMIN: load all leaves; for EMPLOYEE load own leaves only (preserve RBAC)
+                    const leavesUrl = (me && me.role === 'ADMIN') ? '/api/leaves' : `/api/leaves?employeeId=${encodeURIComponent(me?.employeeId || '')}`;
+                    const leavesP = fetch(leavesUrl).catch(() => ({ ok: false }));
+
+                    // Employees only for ADMIN
+                    let employees = [];
+                    let empPromise = Promise.resolve({ ok: false });
+                    if (me && me.role === 'ADMIN') empPromise = fetch('/api/employees').catch(() => ({ ok: false }));
+
+                    const [statsR, leavesR, empR] = await Promise.all([statsP, leavesP, empPromise]);
+
+                    const stats = (statsR && statsR.ok) ? await statsR.json().catch(() => ({})) : {};
+                    safeText('total', stats.totalEmployees || 0);
+                    safeText('departments', stats.totalDepartments || 0);
+                    safeText('present', stats.presentToday || 0);
+                    safeText('pendingLeaves', stats.pendingLeaves || 0);
+
+                    if (me) {
+                        safeText('profileName', me.username || '-');
+                        safeText('profileRole', me.role || '-');
+                        safeText('profileEmpId', me.employeeId || me.empId || '-');
+                        const avatar = getById('profileAvatar'); if (avatar && me.username) avatar.textContent = me.username.charAt(0).toUpperCase();
+                    }
+
+                    if (empR && empR.ok) {
+                        employees = await empR.json().catch(() => []);
+                    }
+
+                    const recentEmpEl = getById('recentEmployees');
+                    if (recentEmpEl) recentEmpEl.innerHTML = '';
+                    // For ADMIN, show recent employees; for EMPLOYEE skip employees list
+                    if (me && me.role === 'ADMIN' && employees && employees.length && recentEmpEl) {
+                        employees.slice(0, 5).forEach(e => {
+                            const d = document.createElement('div'); d.className = 'recent-item';
+                            d.innerHTML = `<div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-600));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600">${(e.fullName || 'U').charAt(0)}</div><div><div style="font-weight:600">${e.fullName || ''}</div><div style="color:var(--muted);font-size:13px">${e.empId || ''}</div></div>`;
+                            appendIf(recentEmpEl, d);
+                        });
+                    }
+
+                    const leaves = (leavesR && leavesR.ok) ? await leavesR.json().catch(() => []) : [];
+                    const recentLeavesEl = getById('recentLeaves');
+                    if (recentLeavesEl) recentLeavesEl.innerHTML = '';
+                    (leaves || []).slice(0, 5).forEach(l => {
+                        const item = document.createElement('div'); item.className = 'recent-item';
+                        const statusClass = l.status === 'APPROVED' ? 'badge-approved' : (l.status === 'REJECTED' ? 'badge-rejected' : 'badge-pending');
+                        item.innerHTML = `<div style="width:44px;height:44px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#111;font-weight:600">LR</div><div><div style="font-weight:600">${l.employeeName || l.employee_name || '-'}</div><div style="color:var(--muted);font-size:13px">${l.leaveType || l.leave_type || ''} • <span class="badge ${statusClass}">${l.status || ''}</span></div></div>`;
+                        appendIf(recentLeavesEl, item);
+                    });
+
+                    // Chart
+                    await createOrUpdateChart(stats.presentToday || 0, stats.absentToday || 0);
+
+                } catch (err) { console.error('dashboard load failed', err); }
+            }
+
+            // Attach logout safely
+            (function attachLogout() {
+                const l = getById('logout');
+                if (!l) return;
+                if (!l.dataset.listener) {
+                    l.addEventListener('click', async (e) => { e.preventDefault(); try { await fetch('/api/logout'); } catch (err) { } window.location = '/static/index.html'; });
+                    l.dataset.listener = '1';
+                }
+            })();
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', () => { loadDashboardData(); setInterval(loadDashboardData, 15000); });
+        })();
+    </script>
+</body>
+
+</html>

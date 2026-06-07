@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HRMS - Leaves</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <h2>HRMS</h2>
+            <nav>
+                <a href="/static/dashboard.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z" fill="currentColor"/></svg><span>Dashboard</span></a>
+                <a href="/static/employees.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm-7 9a7 7 0 0 1 14 0H5z" fill="currentColor"/></svg><span>Employees</span></a>
+                <a href="/static/departments.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 13h8V3H3v10zm10 8h8v-6h-8v6zM13 3v6h8V3h-8z" fill="currentColor"/></svg><span>Departments</span></a>
+                <a href="/static/attendance.html"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7V12l4 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Attendance</span></a>
+                <a href="/static/leaves.html" class="active"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Leaves</span></a>
+                <a href="#" id="logout"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Logout</span></a>
+            </nav>
+        </aside>
+        <main class="main">
+            <header>
+                <h1>Leaves</h1>
+                <div class="toolbar">
+                    <select id="statusFilter"><option value="">All</option><option value="PENDING">Pending</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option></select>
+                    <input id="searchLeaves" placeholder="Search by employee name">
+                    <button id="applyBtn">Apply Leave</button>
+                </div>
+            </header>
+            <table class="data-table" id="leavesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Emp ID</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Days</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Approved By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </main>
+    </div>
+
+    <div id="leaveModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Apply Leave</h3>
+            <form id="leaveForm">
+                <label>Leave Type</label>
+                <select name="leaveType">
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Casual Leave">Casual Leave</option>
+                    <option value="Earned Leave">Earned Leave</option>
+                    <option value="Work From Home">Work From Home</option>
+                </select>
+                <label>From Date</label>
+                <input name="fromDate" type="date" required>
+                <label>To Date</label>
+                <input name="toDate" type="date" required>
+                <label>Reason</label>
+                <textarea name="reason" required></textarea>
+                <div class="modal-actions">
+                    <button type="submit">Apply</button>
+                    <button type="button" id="leaveCancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        // leaves page specific init
+        document.addEventListener('DOMContentLoaded', async () => {
+            const applyBtn = document.getElementById('applyBtn');
+            const modal = document.getElementById('leaveModal');
+            const cancel = document.getElementById('leaveCancel');
+            const form = document.getElementById('leaveForm');
+            const search = document.getElementById('searchLeaves');
+            const status = document.getElementById('statusFilter');
+            if (applyBtn) applyBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+            if (cancel) cancel.addEventListener('click', () => modal.classList.add('hidden'));
+            if (form) form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fd = new FormData(form); const body = new URLSearchParams(fd);
+                body.append('action','apply');
+                const res = await fetch('/api/leaves', { method: 'POST', body });
+                const data = await res.json().catch(()=>({}));
+                if (res.ok && data.status === 'ok') { loadLeaves(); modal.classList.add('hidden'); }
+                else alert(data.message || 'Failed to apply leave');
+            });
+            if (search) { let t; search.addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadLeaves, 300); }); }
+            if (status) status.addEventListener('change', loadLeaves);
+            await loadLeaves();
+        });
+
+        async function loadLeaves(){
+            const q = document.getElementById('searchLeaves')?.value || '';
+            const st = document.getElementById('statusFilter')?.value || '';
+            let url = '/api/leaves';
+            const params = [];
+            if (q) params.push('search=' + encodeURIComponent(q));
+            if (st) params.push('status=' + encodeURIComponent(st));
+            if (params.length) url += '?' + params.join('&');
+            const res = await fetch(url);
+            const list = await res.json().catch(()=>[]);
+            const tbody = document.querySelector('#leavesTable tbody');
+            tbody.innerHTML = '';
+            // determine role (prefer global window.currentUser)
+            let me = window.currentUser;
+            if (!me) {
+                try { const r = await fetch('/api/me'); if (r.ok) me = await r.json(); } catch (e) { me = null; }
+            }
+            const isAdmin = me && me.role === 'ADMIN';
+            list.forEach(l => {
+                const tr = document.createElement('tr');
+                const statusClass = l.status === 'APPROVED' ? 'badge-approved' : (l.status === 'REJECTED' ? 'badge-rejected' : 'badge-pending');
+                const actions = (l.status === 'PENDING' && isAdmin) ? ('<button class="btn" data-id="'+l.id+'" data-action="approve">Approve</button> <button class="btn" data-id="'+l.id+'" data-action="reject">Reject</button>') : '';
+                tr.innerHTML = `<td>${l.id}</td><td>${l.employeeId}</td><td>${(l.employeeName||'')}</td><td>${l.leaveType||''}</td><td>${l.fromDate||''}</td><td>${l.toDate||''}</td><td>${l.totalDays||''}</td><td>${(l.reason||'')}</td><td><span class="badge ${statusClass}">${l.status||''}</span></td><td>${l.approvedBy||''}</td><td>${actions}</td>`;
+                tbody.appendChild(tr);
+            });
+            // attach actions
+            tbody.querySelectorAll('button').forEach(b => b.addEventListener('click', async (ev)=>{
+                const id = ev.target.getAttribute('data-id'); const action = ev.target.getAttribute('data-action');
+                if (!confirm(action + ' leave #' + id + '?')) return;
+                const body = new URLSearchParams(); body.append('action', action); body.append('id', id);
+                const res = await fetch('/api/leaves', { method: 'POST', body });
+                if (res.ok) loadLeaves(); else { const t = await res.text(); alert(t || 'Failed'); }
+            }));
+        }
+    </script>
+</body>
+
+</html>
