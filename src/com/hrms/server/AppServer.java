@@ -27,24 +27,35 @@ import com.hrms.model.LeaveRequest;
 
 public class AppServer {
     private static final int PORT = 8080;
-    private static Map<String, User> sessions = Collections.synchronizedMap(new HashMap<>());
+    
+  public static void main(String[] args) throws Exception {
 
-    public static void main(String[] args) throws Exception {
-        HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
-        server.createContext("/", new RootHandler());
-        server.createContext("/static", new StaticHandler());
-        server.createContext("/api/login", new LoginHandler());
-        server.createContext("/api/logout", new LogoutHandler());
-        server.createContext("/api/employees", new EmployeeApiHandler());
-        server.createContext("/api/departments", new DepartmentApiHandler());
-        server.createContext("/api/attendance", new AttendanceApiHandler());
-        server.createContext("/api/leaves", new LeaveApiHandler());
-        server.createContext("/api/me", new MeHandler());
-        server.createContext("/api/dashboard/stats", new DashboardApiHandler());
-        server.setExecutor(null);
-        System.out.println("Server started at http://localhost:" + PORT);
-        server.start();
-    }
+    int port = Integer.parseInt(
+        System.getenv().getOrDefault("PORT", "8080")
+    );
+
+    HttpServer server = HttpServer.create(
+        new InetSocketAddress(port),
+        0
+    );
+
+    server.createContext("/", new RootHandler());
+    server.createContext("/static", new StaticHandler());
+    server.createContext("/api/login", new LoginHandler());
+    server.createContext("/api/logout", new LogoutHandler());
+    server.createContext("/api/employees", new EmployeeApiHandler());
+    server.createContext("/api/departments", new DepartmentApiHandler());
+    server.createContext("/api/attendance", new AttendanceApiHandler());
+    server.createContext("/api/leaves", new LeaveApiHandler());
+    server.createContext("/api/me", new MeHandler());
+    server.createContext("/api/dashboard/stats", new DashboardApiHandler());
+
+    server.setExecutor(null);
+
+    System.out.println("Server started on port " + port);
+
+    server.start();
+}  
 
     static class RootHandler implements HttpHandler {
         public void handle(HttpExchange ex) throws IOException {
