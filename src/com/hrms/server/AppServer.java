@@ -27,7 +27,8 @@ import com.hrms.model.LeaveRequest;
 
 public class AppServer {
     private static final int PORT = 8080;
-    
+       private static final Map<String, User> sessions =
+            Collections.synchronizedMap(new HashMap<>());
   public static void main(String[] args) throws Exception {
 
     int port = Integer.parseInt(
