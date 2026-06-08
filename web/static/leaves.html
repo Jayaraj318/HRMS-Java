@@ -80,6 +80,17 @@
     <script>
         // leaves page specific init
         document.addEventListener('DOMContentLoaded', async () => {
+
+               let me = null;
+    try {
+        const r = await fetch('/api/me');
+        if (r.ok) me = await r.json();
+    } catch(e){}
+
+    if(me && me.role === 'ADMIN'){
+        document.getElementById('applyBtn').style.display = 'none';
+    }
+
             const applyBtn = document.getElementById('applyBtn');
             const modal = document.getElementById('leaveModal');
             const cancel = document.getElementById('leaveCancel');

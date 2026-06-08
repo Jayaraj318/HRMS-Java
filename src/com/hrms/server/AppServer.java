@@ -135,7 +135,8 @@ public class AppServer {
                     try {
                         int id = Integer.parseInt(idParam);
                         // allow if admin or requesting own employee record
-                        if (u == null || !("ADMIN".equalsIgnoreCase(u.getRole()) || (u.getEmployeeId() != null && u.getEmployeeId() == id))) {
+                        if (u == null || !("ADMIN".equalsIgnoreCase(u.getRole())
+                                || (u.getEmployeeId() != null && u.getEmployeeId() == id))) {
                             ex.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
                             ex.sendResponseHeaders(403, 0);
                             ex.close();
@@ -427,59 +428,87 @@ public class AppServer {
 
             if ("GET".equalsIgnoreCase(method)) {
                 String dateParam = parseQueryForKey(ex.getRequestURI().getQuery(), "date");
-                java.time.LocalDate date = dateParam == null ? java.time.LocalDate.now() : java.time.LocalDate.parse(dateParam);
+                java.time.LocalDate date = dateParam == null ? java.time.LocalDate.now()
+                        : java.time.LocalDate.parse(dateParam);
                 List<Attendance> list = new ArrayList<>();
                 if (u != null && "ADMIN".equalsIgnoreCase(u.getRole())) {
                     list = AttendanceDAO.listByDate(date);
                 } else if (u != null) {
                     Integer empId = null;
                     // map session user to employee id
-                    try { empId = com.hrms.dao.LeaveDAO.getEmployeeIdForUser(u.getId()); } catch (Exception e) { empId = null; }
-                    if (empId != null) list = AttendanceDAO.listByEmployeeAndDate(empId, date);
+                    try {
+                        empId = com.hrms.dao.LeaveDAO.getEmployeeIdForUser(u.getId());
+                    } catch (Exception e) {
+                        empId = null;
+                    }
+                    if (empId != null)
+                        list = AttendanceDAO.listByEmployeeAndDate(empId, date);
                 }
-                StringBuilder sb = new StringBuilder(); sb.append('[');
-                for (int i=0;i<list.size();i++) {
+                StringBuilder sb = new StringBuilder();
+                sb.append('[');
+                for (int i = 0; i < list.size(); i++) {
                     Attendance a = list.get(i);
                     sb.append('{');
                     sb.append("\"id\":").append(a.getId()).append(',');
                     sb.append("\"employeeId\":").append(a.getEmployeeId()).append(',');
                     sb.append("\"employeeName\":\"").append(escape(a.getEmployeeName())).append('\"').append(',');
-                    sb.append("\"attendanceDate\":\"").append(a.getAttendanceDate()==null?"":a.getAttendanceDate().toString()).append('\"').append(',');
-                    sb.append("\"checkIn\":\"").append(a.getCheckIn()==null?"":a.getCheckIn().toString()).append('\"').append(',');
-                    sb.append("\"checkOut\":\"").append(a.getCheckOut()==null?"":a.getCheckOut().toString()).append('\"').append(',');
-                    sb.append("\"status\":\"").append(a.getStatus()==null?"":a.getStatus()).append('\"');
-                    sb.append('}'); if (i<list.size()-1) sb.append(',');
+                    sb.append("\"attendanceDate\":\"")
+                            .append(a.getAttendanceDate() == null ? "" : a.getAttendanceDate().toString()).append('\"')
+                            .append(',');
+                    sb.append("\"checkIn\":\"").append(a.getCheckIn() == null ? "" : a.getCheckIn().toString())
+                            .append('\"').append(',');
+                    sb.append("\"checkOut\":\"").append(a.getCheckOut() == null ? "" : a.getCheckOut().toString())
+                            .append('\"').append(',');
+                    sb.append("\"status\":\"").append(a.getStatus() == null ? "" : a.getStatus()).append('\"');
+                    sb.append('}');
+                    if (i < list.size() - 1)
+                        sb.append(',');
                 }
                 sb.append(']');
                 byte[] out = sb.toString().getBytes("UTF-8");
-                ex.getResponseHeaders().add("Content-Type","application/json; charset=UTF-8");
+                ex.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
                 ex.sendResponseHeaders(200, out.length);
                 ex.getResponseBody().write(out);
                 ex.close();
                 return;
             }
 
-            if (u == null) { sendError(ex, 403, "Unauthorized"); return; }
+            if (u == null) {
+                sendError(ex, 403, "Unauthorized");
+                return;
+            }
 
             if ("POST".equalsIgnoreCase(method)) {
-                Map<String,String> form = parseForm(ex);
-                String action = form.getOrDefault("action","checkin");
+                Map<String, String> form = parseForm(ex);
+                String action = form.getOrDefault("action", "checkin");
                 String empIdStr = form.get("employeeId");
-                if (empIdStr == null) { sendError(ex,400,"employeeId required"); return; }
+                if (empIdStr == null) {
+                    sendError(ex, 400, "employeeId required");
+                    return;
+                }
                 int empId = Integer.parseInt(empIdStr);
                 if (!"ADMIN".equalsIgnoreCase(u.getRole())) {
                     Integer myEmpId = com.hrms.dao.LeaveDAO.getEmployeeIdForUser(u.getId());
-                    if (myEmpId == null || myEmpId != empId) { sendError(ex,403,"Unauthorized"); return; }
+                    if (myEmpId == null || myEmpId != empId) {
+                        sendError(ex, 403, "Unauthorized");
+                        return;
+                    }
                 }
                 try {
                     if ("checkin".equalsIgnoreCase(action)) {
                         boolean ok = AttendanceDAO.checkIn(empId, java.time.LocalDateTime.now());
-                        writeJsonResponse(ex, ok); return;
+                        writeJsonResponse(ex, ok);
+                        return;
                     } else if ("checkout".equalsIgnoreCase(action)) {
                         boolean ok = AttendanceDAO.checkOut(empId, java.time.LocalDateTime.now());
-                        writeJsonResponse(ex, ok); return;
+                        writeJsonResponse(ex, ok);
+                        return;
                     }
-                } catch (Exception sqe) { sqe.printStackTrace(); sendError(ex,500,"Database error"); return; }
+                } catch (Exception sqe) {
+                    sqe.printStackTrace();
+                    sendError(ex, 500, "Database error");
+                    return;
+                }
             }
 
             ex.sendResponseHeaders(405, -1);
@@ -500,106 +529,154 @@ public class AppServer {
                     try {
                         int id = Integer.parseInt(idParam);
                         LeaveRequest lr = LeaveDAO.findById(id);
-                        if (lr == null) { ex.sendResponseHeaders(404, -1); return; }
+                        if (lr == null) {
+                            ex.sendResponseHeaders(404, -1);
+                            return;
+                        }
                         StringBuilder sb = new StringBuilder();
                         sb.append('{');
                         sb.append("\"id\":").append(lr.getId()).append(',');
                         sb.append("\"employeeId\":").append(lr.getEmployeeId()).append(',');
                         sb.append("\"employeeName\":\"").append(escape(lr.getEmployeeName())).append('\"').append(',');
                         sb.append("\"leaveType\":\"").append(escape(lr.getLeaveType())).append('\"').append(',');
-                        sb.append("\"fromDate\":\"").append(lr.getFromDate()==null?"":lr.getFromDate().toString()).append('\"').append(',');
-                        sb.append("\"toDate\":\"").append(lr.getToDate()==null?"":lr.getToDate().toString()).append('\"').append(',');
+                        sb.append("\"fromDate\":\"").append(lr.getFromDate() == null ? "" : lr.getFromDate().toString())
+                                .append('\"').append(',');
+                        sb.append("\"toDate\":\"").append(lr.getToDate() == null ? "" : lr.getToDate().toString())
+                                .append('\"').append(',');
                         sb.append("\"totalDays\":").append(lr.getTotalDays()).append(',');
                         sb.append("\"reason\":\"").append(escape(lr.getReason())).append('\"').append(',');
                         sb.append("\"status\":\"").append(lr.getStatus()).append('\"').append(',');
                         sb.append("\"approvedBy\":\"").append(escape(lr.getApprovedBy())).append('\"').append(',');
-                        sb.append("\"createdAt\":\"").append(lr.getCreatedAt()==null?"":lr.getCreatedAt().toString()).append('\"');
+                        sb.append("\"createdAt\":\"")
+                                .append(lr.getCreatedAt() == null ? "" : lr.getCreatedAt().toString()).append('\"');
                         sb.append('}');
                         byte[] out = sb.toString().getBytes("UTF-8");
-                        ex.getResponseHeaders().add("Content-Type","application/json; charset=UTF-8");
+                        ex.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
                         ex.sendResponseHeaders(200, out.length);
                         ex.getResponseBody().write(out);
                         ex.close();
                         return;
-                    } catch (NumberFormatException nfe) { ex.sendResponseHeaders(400, -1); return; }
+                    } catch (NumberFormatException nfe) {
+                        ex.sendResponseHeaders(400, -1);
+                        return;
+                    }
                 }
                 List<LeaveRequest> list = new ArrayList<>();
                 if (u != null && "ADMIN".equalsIgnoreCase(u.getRole())) {
                     list = LeaveDAO.listAll(q, status);
                 } else if (u != null) {
                     Integer empId = LeaveDAO.getEmployeeIdForUser(u.getId());
-                    if (empId != null) list = LeaveDAO.listByEmployee(empId, status);
+                    if (empId != null)
+                        list = LeaveDAO.listByEmployee(empId, status);
                 }
-                StringBuilder sb = new StringBuilder(); sb.append('[');
-                for (int i=0;i<list.size();i++) {
+                StringBuilder sb = new StringBuilder();
+                sb.append('[');
+                for (int i = 0; i < list.size(); i++) {
                     LeaveRequest lr = list.get(i);
                     sb.append('{');
                     sb.append("\"id\":").append(lr.getId()).append(',');
                     sb.append("\"employeeId\":").append(lr.getEmployeeId()).append(',');
                     sb.append("\"employeeName\":\"").append(escape(lr.getEmployeeName())).append('\"').append(',');
                     sb.append("\"leaveType\":\"").append(escape(lr.getLeaveType())).append('\"').append(',');
-                    sb.append("\"fromDate\":\"").append(lr.getFromDate()==null?"":lr.getFromDate().toString()).append('\"').append(',');
-                    sb.append("\"toDate\":\"").append(lr.getToDate()==null?"":lr.getToDate().toString()).append('\"').append(',');
+                    sb.append("\"fromDate\":\"").append(lr.getFromDate() == null ? "" : lr.getFromDate().toString())
+                            .append('\"').append(',');
+                    sb.append("\"toDate\":\"").append(lr.getToDate() == null ? "" : lr.getToDate().toString())
+                            .append('\"').append(',');
                     sb.append("\"totalDays\":").append(lr.getTotalDays()).append(',');
                     sb.append("\"reason\":\"").append(escape(lr.getReason())).append('\"').append(',');
                     sb.append("\"status\":\"").append(lr.getStatus()).append('\"').append(',');
                     sb.append("\"approvedBy\":\"").append(escape(lr.getApprovedBy())).append('\"').append(',');
-                    sb.append("\"createdAt\":\"").append(lr.getCreatedAt()==null?"":lr.getCreatedAt().toString()).append('\"');
-                    sb.append('}'); if (i<list.size()-1) sb.append(',');
+                    sb.append("\"createdAt\":\"").append(lr.getCreatedAt() == null ? "" : lr.getCreatedAt().toString())
+                            .append('\"');
+                    sb.append('}');
+                    if (i < list.size() - 1)
+                        sb.append(',');
                 }
                 sb.append(']');
                 byte[] out = sb.toString().getBytes("UTF-8");
-                ex.getResponseHeaders().add("Content-Type","application/json; charset=UTF-8");
+                ex.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
                 ex.sendResponseHeaders(200, out.length);
                 ex.getResponseBody().write(out);
                 ex.close();
                 return;
             }
 
-            if (u == null) { sendError(ex, 403, "Unauthorized"); return; }
+            if (u == null) {
+                sendError(ex, 403, "Unauthorized");
+                return;
+            }
 
             if ("POST".equalsIgnoreCase(method)) {
-                Map<String,String> form = parseForm(ex);
-                String action = form.getOrDefault("action","apply");
+                Map<String, String> form = parseForm(ex);
+                String action = form.getOrDefault("action", "apply");
                 if ("apply".equalsIgnoreCase(action)) {
-                    String leaveType = form.getOrDefault("leaveType","").trim();
-                    String from = form.getOrDefault("fromDate","").trim();
-                    String to = form.getOrDefault("toDate","").trim();
-                    String reason = form.getOrDefault("reason","").trim();
-                    if (leaveType.isEmpty() || from.isEmpty() || to.isEmpty() || reason.isEmpty()) { sendError(ex,400,"leaveType, fromDate, toDate and reason are required"); return; }
+                    if ("ADMIN".equalsIgnoreCase(u.getRole())) {
+                        sendError(ex, 403, "Admins cannot apply leave");
+                        return;
+                    }
+
+                    String leaveType = form.getOrDefault("leaveType", "").trim();
+                    String from = form.getOrDefault("fromDate", "").trim();
+                    String to = form.getOrDefault("toDate", "").trim();
+                    String reason = form.getOrDefault("reason", "").trim();
+                    if (leaveType.isEmpty() || from.isEmpty() || to.isEmpty() || reason.isEmpty()) {
+                        sendError(ex, 400, "leaveType, fromDate, toDate and reason are required");
+                        return;
+                    }
                     try {
                         java.time.LocalDate fd = java.time.LocalDate.parse(from);
                         java.time.LocalDate td = java.time.LocalDate.parse(to);
-                        if (td.isBefore(fd)) { sendError(ex,400,"toDate cannot be before fromDate"); return; }
+                        if (td.isBefore(fd)) {
+                            sendError(ex, 400, "toDate cannot be before fromDate");
+                            return;
+                        }
                         long days = java.time.temporal.ChronoUnit.DAYS.between(fd, td) + 1;
                         Integer empId = null;
                         String empIdStr = form.get("employeeId");
-                        if (empIdStr != null && !empIdStr.isEmpty()) empId = Integer.parseInt(empIdStr);
+                        if (empIdStr != null && !empIdStr.isEmpty())
+                            empId = Integer.parseInt(empIdStr);
                         if (empId == null) {
                             empId = u.getEmployeeId();
-                            if (empId == null) empId = LeaveDAO.getEmployeeIdForUser(u.getId());
+                            if (empId == null)
+                                empId = LeaveDAO.getEmployeeIdForUser(u.getId());
                         }
                         LeaveRequest lr = new LeaveRequest();
                         lr.setEmployeeId(empId);
                         lr.setLeaveType(leaveType);
                         lr.setFromDate(fd);
                         lr.setToDate(td);
-                        lr.setTotalDays((int)days);
+                        lr.setTotalDays((int) days);
                         lr.setReason(reason);
                         lr.setStatus("PENDING");
                         boolean ok = LeaveDAO.apply(lr);
                         writeJsonResponse(ex, ok);
-                    } catch (Exception sqe) { sqe.printStackTrace(); sendError(ex,500,"Database error"); }
+                    } catch (Exception sqe) {
+                        sqe.printStackTrace();
+                        sendError(ex, 500, "Database error");
+                    }
                     return;
                 } else if ("approve".equalsIgnoreCase(action) || "reject".equalsIgnoreCase(action)) {
-                    if (u == null || !"ADMIN".equalsIgnoreCase(u.getRole())) { sendError(ex,403,"Unauthorized"); return; }
-                    String idStr = form.get("id"); if (idStr == null || idStr.isEmpty()) { sendError(ex,400,"id required"); return; }
+                    if (u == null || !"ADMIN".equalsIgnoreCase(u.getRole())) {
+                        sendError(ex, 403, "Unauthorized");
+                        return;
+                    }
+                    String idStr = form.get("id");
+                    if (idStr == null || idStr.isEmpty()) {
+                        sendError(ex, 400, "id required");
+                        return;
+                    }
                     try {
                         int id = Integer.parseInt(idStr);
                         boolean ok = false;
-                        if ("approve".equalsIgnoreCase(action)) ok = LeaveDAO.approve(id, u.getUsername()); else ok = LeaveDAO.reject(id, u.getUsername());
+                        if ("approve".equalsIgnoreCase(action))
+                            ok = LeaveDAO.approve(id, u.getUsername());
+                        else
+                            ok = LeaveDAO.reject(id, u.getUsername());
                         writeJsonResponse(ex, ok);
-                    } catch (Exception sqe) { sqe.printStackTrace(); sendError(ex,500,"Database error"); }
+                    } catch (Exception sqe) {
+                        sqe.printStackTrace();
+                        sendError(ex, 500, "Database error");
+                    }
                     return;
                 }
             }
@@ -612,16 +689,19 @@ public class AppServer {
         public void handle(HttpExchange ex) throws IOException {
             String sid = getSessionId(ex);
             User u = sid == null ? null : sessions.get(sid);
-            if (u == null) { ex.sendResponseHeaders(401, -1); return; }
+            if (u == null) {
+                ex.sendResponseHeaders(401, -1);
+                return;
+            }
             StringBuilder sb = new StringBuilder();
             sb.append('{');
             sb.append("\"id\":").append(u.getId()).append(',');
             sb.append("\"username\":\"").append(escape(u.getUsername())).append('\"').append(',');
             sb.append("\"role\":\"").append(escape(u.getRole())).append('\"').append(',');
-            sb.append("\"employeeId\":").append(u.getEmployeeId()==null?"null":u.getEmployeeId());
+            sb.append("\"employeeId\":").append(u.getEmployeeId() == null ? "null" : u.getEmployeeId());
             sb.append('}');
             byte[] out = sb.toString().getBytes("UTF-8");
-            ex.getResponseHeaders().add("Content-Type","application/json; charset=UTF-8");
+            ex.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
             ex.sendResponseHeaders(200, out.length);
             ex.getResponseBody().write(out);
             ex.close();
@@ -645,7 +725,8 @@ public class AppServer {
             // Fallback: if no explicit absent records, derive from total - present
             if (absentToday == 0 && totalEmployees >= 0) {
                 int derived = totalEmployees - presentToday;
-                if (derived < 0) derived = 0;
+                if (derived < 0)
+                    derived = 0;
                 absentToday = derived;
             }
             StringBuilder sb = new StringBuilder();

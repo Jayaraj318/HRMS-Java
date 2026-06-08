@@ -19,15 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location = '/static/dashboard.html';
         }
     }
+    if (!window.location.pathname.includes('index.html')) {
 
-    (async () => {
-        try {
-            const r = await fetch('/api/me');
-            if (r.ok) window.currentUser = await r.json();
-        } catch (e) { /* ignore */ }
-        // apply role-based UI changes after /api/me is loaded
-        applyRoleRestrictions(window.currentUser);
-    })();
+        (async () => {
+            try {
+                const r = await fetch('/api/me');
+                if (r.ok) window.currentUser = await r.json();
+            } catch (e) { /* ignore */ }
+            // apply role-based UI changes after /api/me is loaded
+            applyRoleRestrictions(window.currentUser);
+        })();
+    }
     // Login page
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -142,7 +144,23 @@ async function loadEmployees() {
     tbody.innerHTML = '';
     list.forEach(e => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${e.id}</td><td>${e.empId}</td><td>${e.fullName}</td><td>${e.email}</td><td>${e.phone || ''}</td><td>${e.designation || ''}</td><td>${e.department || ''}</td><td><button data-id="${e.id}" class="edit">Edit</button> <button data-id="${e.id}" class="del">Delete</button></td>`;
+tr.innerHTML = `
+<td>${e.id}</td>
+<td>${e.empId}</td>
+<td>${e.fullName}</td>
+<td>${e.email}</td>
+<td>${e.phone || ''}</td>
+<td>${e.designation || ''}</td>
+<td>${e.department || ''}</td>
+<td>
+<button data-id="${e.id}" class="btn edit-btn edit">
+✏ Edit
+</button>
+
+<button data-id="${e.id}" class="btn delete-btn del">
+🗑 Delete
+</button>
+</td>`;
         tbody.appendChild(tr);
     });
     document.querySelectorAll('.edit').forEach(b => b.addEventListener('click', async (ev) => {
@@ -203,7 +221,20 @@ async function loadDepartments() {
         const mgr = d.managerName || d.manager_name || '';
         const created = d.createdAt || d.created_at || '';
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${d.id}</td><td>${name}</td><td>${mgr}</td><td>${created}</td><td><button data-id="${d.id}" class="edit-dept">Edit</button> <button data-id="${d.id}" class="del-dept">Delete</button></td>`;
+tr.innerHTML = `
+<td>${d.id}</td>
+<td>${name}</td>
+<td>${mgr}</td>
+<td>${created}</td>
+<td>
+<button data-id="${d.id}" class="btn edit-btn edit-dept">
+✏ Edit
+</button>
+
+<button data-id="${d.id}" class="btn delete-btn del-dept">
+🗑 Delete
+</button>
+</td>`;
         tbody.appendChild(tr);
     });
     document.querySelectorAll('.edit-dept').forEach(b => b.addEventListener('click', async (ev) => {
