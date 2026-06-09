@@ -19,10 +19,27 @@ public class DBUtil {
         }
     }
 
-    public static Connection getConnection() throws SQLException {
-        String url = props.getProperty("db.url");
-        String user = props.getProperty("db.user");
-        String pass = props.getProperty("db.password");
+   public static Connection getConnection() throws SQLException {
+
+    String host = System.getenv("MYSQLHOST");
+    String port = System.getenv("MYSQLPORT");
+    String database = System.getenv("MYSQLDATABASE");
+    String user = System.getenv("MYSQLUSER");
+    String pass = System.getenv("MYSQLPASSWORD");
+
+    if(host != null && port != null && database != null) {
+
+        String url =
+            "jdbc:mysql://" + host + ":" + port + "/" + database +
+            "?useSSL=false&serverTimezone=UTC";
+
         return DriverManager.getConnection(url, user, pass);
     }
+
+    String url = props.getProperty("db.url");
+    user = props.getProperty("db.user");
+    pass = props.getProperty("db.password");
+
+    return DriverManager.getConnection(url, user, pass);
+}   
 }
