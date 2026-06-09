@@ -1,7 +1,4 @@
 -- HRMS Phase 1 schema
-CREATE DATABASE IF NOT EXISTS hrms CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE hrms;
-
 -- Users for authentication (passwords stored as SHA2 hex)
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
